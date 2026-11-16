@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KP & Prashna Kundali Calculator + Chart & Dasha</title>
+<style>
+  :root {
+    --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --muted: #94a3b8;
+    --accent: #f59e0b; --accent-hover: #d97706; --border: #334155;
+    --yes: #10b981; --delay: #f59e0b; --no: #ef4444; --highlight: rgba(245, 158, 11, 0.14);
+  }
+  * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+  body { background: var(--bg); color: var(--text); margin: 0; padding: 16px; line-height: 1.5; }
+  .container { max-width: 1020px; margin: 0 auto; }
+  h1 { text-align: center; color: var(--accent); margin-bottom: 6px; font-size: 1.6rem; }
+  .subtitle { text-align: center; color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; align-items: start; }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+  input, select {
+    width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: #0f172a; color: var(--text); font-size: 0.95rem;
+  }
+  button.primary-btn {
+    width: 100%; padding: 12px; background: var(--accent); color: #000; font-weight: 700;
+    border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; margin-top: 14px;
+  }
+  button.primary-btn:hover { background: var(--accent-hover); }
+  .verdict-box {
+    padding: 16px; border-radius: 10px; border-left: 5px solid var(--accent);
+    background: #0f172a; margin-bottom: 14px;
+  }
+  .verdict-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; }
+  .yes { border-color: var(--yes); color: var(--yes); }
+  .delay { border-color: var(--delay); color: var(--delay); }
+  .no { border-color: var(--no); color: var(--no); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.87rem; margin-top: 8px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { color: var(--accent); background: #0f172a; }
+  .table-wrap { overflow-x: auto; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #334155; font-size: 0.8rem; margin: 2px; }
+  .badge-active { background: var(--accent); color: #000; font-weight: 700; }
+  .hidden { display: none; }
+
+  /* North Indian Chart */
+  .chart-box { display: flex; flex-direction: column; align-items: center; }
+  #kundaliSvg { width: 100%; max-width: 410px; height: auto; background: #0f172a; border-radius: 10px; }
+  .chart-note { font-size: 0.8rem; color: var(--muted); margin-top: 8px; text-align: center; }
+
+  /* Dasha Accordion */
+  .dasha-banner {
+    background: #0f172a; border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; margin-bottom: 12px; font-size: 0.9rem;
+  }
+  .md-row { cursor: pointer; transition: background 0.15s; }
+  .md-row:hover { background: rgba(255,255,255,0.04); }
+  .active-period { background: var(--highlight) !important; }
+  .bhukti-panel { background: #0f172a; padding: 10px; border-radius: 8px; margin: 6px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>KP & Prashna Kundali Calculator</h1>
+  <div class="subtitle">Krishnamurti Paddhati • North Indian Chart • Vimshottari Dasha/Bhukti • Prashna Answer</div>
+
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label>Prashna Mode</label>
+        <select id="mode" onchange="toggleHorary()">
+          <option value="tatkalik">1. Tatkalik Prashna (Current/Custom Time)</option>
+          <option value="horary">2. Horary Number (1 se 249)</option>
+        </select>
+      </div>
+      <div id="horaryBox" class="hidden">
+        <label>Horary Number (1 - 249)</label>
+        <input type="number" id="horaryNum" min="1" max="249" value="108">
+      </div>
+      <div>
+        <label>Prashna Ka Vishay (Question Topic)</label>
+        <select id="topic">
+          <option value="1">General Yes/No (Koi bhi kaam)</option>
+          <option value="2">Job / Career / Promotion</option>
+          <option value="3">Marriage / Love Relationship</option>
+          <option value="4">Money / Loan Recovery / Profit</option>
+          <option value="5">Foreign Travel / Visa</option>
+          <option value="6">Health / Rog Mukti</option>
+          <option value="7">Property / Vehicle Purchase</option>
+        </select>
+      </div>
+      <div>
+        <label>City Preset (Ya neeche Lat/Lon dalein)</label>
+        <select id="city" onchange="setCity()">
+          <option value="27.57,77.70">Vrindavan (27.57, 77.70)</option>
+          <option value="28.61,77.20">New Delhi (28.61, 77.20)</option>
+          <option value="19.07,72.87">Mumbai (19.07, 72.87)</option>
+          <option value="22.57,88.36">Kolkata (22.57, 88.36)</option>
+          <option value="25.31,82.97">Varanasi (25.31, 82.97)</option>
+          <option value="12.97,77.59">Bengaluru (12.97, 77.59)</option>
+        </select>
+      </div>
+      <div>
+        <label>Date & Time (IST +5:30)</label>
+        <input type="datetime-local" id="dtInput">
+      </div>
+      <div>
+        <label>Latitude</label>
+        <input type="number" step="0.0001" id="lat" value="27.57">
+      </div>
+      <div>
+        <label>Longitude</label>
+        <input type="number" step="0.0001" id="lon" value="77.70">
+      </div>
+    </div>
+    <button class="primary-btn" onclick="calculateKP()">Prashna Kundali, Chart & Dasha Nikalein</button>
+  </div>
+
+  <div id="output" class="hidden">
+    <div class="card">
+      <div id="verdictContainer" class="verdict-box"></div>
+      <div id="rpContainer"></div>
+    </div>
+
+    <!-- North Indian Chart + Vimshottari Dasha -->
+    <div class="two-col">
+      <div class="card chart-box">
+        <h3 style="margin-top:0;color:var(--accent);align-self:flex-start;">North Indian KP Bhava Chart</h3>
+        <svg id="kundaliSvg" viewBox="0 0 420 420" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="chart-note">
+          Peela number = Cusp Rashi (1=Aries..12=Pisces) • Grah = KP Bhava sthiti • <strong>(R)</strong> = Vakri
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0;color:var(--accent);">Vimshottari Dasha & Bhukti</h3>
+        <div id="currentDashaBanner" class="dasha-banner"></div>
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:6px;">
+          Kisi bhi Mahadasha par click karke uski 9 Bhukti (Antardasha) dates dekhein:
+        </div>
+        <div class="table-wrap">
+          <table id="dashaTable">
+            <thead>
+              <tr><th>Mahadasha</th><th>Start Date</th><th>End Date</th><th>Status</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;color:var(--accent);">Planets & KP ABCD Significators</h3>
+      <div class="table-wrap">
+        <table id="planetTable">
+          <thead>
+            <tr>
+              <th>Planet</th><th>House</th><th>Nirayana Degree</th>
+              <th>Sign Lord</th><th>Star Lord</th><th>Sub Lord</th><th>Signifies Houses</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;color:var(--accent);">12 Bhava Cusps (Placidus KP)</h3>
+      <div class="table-wrap">
+        <table id="cuspTable">
+          <thead>
+            <tr>
+              <th>Cusp</th><th>Degree</th><th>Sign</th>
+              <th>Sign Lord</th><th>Star Lord</th><th>Sub Lord (CSL)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const D2R = Math.PI / 180, R2D = 180 / Math.PI;
+const DASHA_LORDS = ["Ketu","Venus","Sun","Moon","Mars","Rahu","Jupiter","Saturn","Mercury"];
+const SHORT_PLANET = { Sun:"Su", Moon:"Mo", Mars:"Ma", Mercury:"Me", Jupiter:"Ju", Venus:"Ve", Saturn:"Sa", Rahu:"Ra", Ketu:"Ke" };
+const DASHA_YEARS = [7, 20, 6, 10, 7, 18, 16, 19, 17];
+const SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+const SIGN_LORDS = ["Mars","Venus","Mercury","Moon","Sun","Mercury","Venus","Mars","Jupiter","Saturn","Saturn","Jupiter"];
+const NAKSHATRAS = [
+  "Ashwini","Bharani","Krittika","Rohini","Mrigashira","Ardra","Punarvasu","Pushya","Ashlesha",
+  "Magha","Purva Phalguni","Uttara Phalguni","Hasta","Chitra","Swati","Vishakha","Anuradha","Jyeshtha",
+  "Mula","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishta","Shatabhisha","Purva Bhadrapada","Uttara Bhadrapada","Revati"
+];
+const DAY_LORDS = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn"];
+const MS_PER_YEAR = 365.2425 * 86400 * 1000;
+
+function norm360(x) { return ((x % 360) + 360) % 360; }
+function norm2Pi(x) { const t = 2 * Math.PI; return ((x % t) + t) % t; }
+
+function setNow() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  document.getElementById("dtInput").value = new Date(now - offset).toISOString().slice(0, 16);
+}
+setNow();
+
+function toggleHorary() {
+  const m = document.getElementById("mode").value;
+  document.getElementById("horaryBox").classList.toggle("hidden", m !== "horary");
+}
+function setCity() {
+  const [la, lo] = document.getElementById("city").value.split(",");
+  document.getElementById("lat").value = la;
+  document.getElementById("lon").value = lo;
+}
+
+function fmtDate(ms) {
+  const d = new Date(ms);
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${String(d.getUTCDate()).padStart(2,'0')} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
+function degToDMS(deg) {
+  deg = norm360(deg);
+  const sIdx = Math.floor(deg / 30);
+  const rem = deg - sIdx * 30;
+  const d = Math.floor(rem);
+  const mFloat = (rem - d) * 60;
+  const m = Math.floor(mFloat);
+  const s = Math.floor((mFloat - m) * 60);
+  return `${SIGNS[sIdx].slice(0,3)} ${String(d).padStart(2,'0')}°${String(m).padStart(2,'0')}'${String(s).padStart(2,'0')}"`;
+}
+
+function getKPLords(deg) {
+  deg = norm360(deg);
+  const signIdx = Math.floor(deg / 30);
+  const nakSpan = 360 / 27;
+  const nakIdx = Math.floor(deg / nakSpan);
+  const starIdx = nakIdx % 9;
+  const remNak = deg - nakIdx * nakSpan;
+  let acc = 0, subLord = DASHA_LORDS[starIdx];
+  for (let i = 0; i < 9; i++) {
+    const idx = (starIdx + i) % 9;
+    const span = (DASHA_YEARS[idx] / 120) * nakSpan;
+    if (remNak <= acc + span + 1e-9) { subLord = DASHA_LORDS[idx]; break; }
+    acc += span;
+  }
+  return {
+    sign: SIGNS[signIdx],
+    signNum: signIdx + 1,
+    signLord: SIGN_LORDS[signIdx],
+    nakshatra: NAKSHATRAS[nakIdx],
+    starLord: DASHA_LORDS[starIdx],
+    subLord
+  };
+}
+
+function getJulianDay(utcDate) {
+  let y = utcDate.getUTCFullYear();
+  let m = utcDate.getUTCMonth() + 1;
+  const d = utcDate.getUTCDate() + (utcDate.getUTCHours() + utcDate.getUTCMinutes()/60 + utcDate.getUTCSeconds()/3600) / 24;
+  if (m <= 2) { y -= 1; m += 12; }
+  const A = Math.floor(y / 100);
+  const B = 2 - A + Math.floor(A / 4);
+  return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + B - 1524.5;
+}
+
+function getKPAyanamsa(jd) {
+  const T = (jd - 2451545.0) / 36525.0;
+  return 23.853055 + T * (50.290966 * 100 / 3600);
+}
+
+function computeTropicalPlanets(jd) {
+  const d = jd - 2451545.0;
+  const T = d / 36525.0;
+
+  // Sun
+  const L0 = norm360(280.46646 + 36000.76983 * T + 0.0003032 * T * T);
+  const Ms = norm360(357.52911 + 35999.05029 * T - 0.0001537 * T * T) * D2R;
+  const C = (1.914602 - 0.004817 * T) * Math.sin(Ms) + (0.019993 - 0.000101 * T) * Math.sin(2 * Ms) + 0.000289 * Math.sin(3 * Ms);
+  const omega = (125.04 - 1934.136 * T) * D2R;
+  const sunLon = norm360(L0 + C - 0.00569 - 0.00478 * Math.sin(omega));
+  const eEarth = 0.016708634 - 0.000042037 * T;
+  const vSun = Ms + C * D2R;
+  const rSun = (1.000001018 * (1 - eEarth * eEarth)) / (1 + eEarth * Math.cos(vSun));
+  const xE = -rSun * Math.cos(sunLon * D2R);
+  const yE = -rSun * Math.sin(sunLon * D2R);
+
+  // Moon
+  const Lp = norm360(218.3164477 + 481267.88123421 * T - 0.0015786 * T * T);
+  const D = norm360(297.8501921 + 445267.1114034 * T - 0.0018819 * T * T) * D2R;
+  const Mm = norm360(134.9633964 + 477198.8675055 * T + 0.0087414 * T * T) * D2R;
+  const F = norm360(93.2720950 + 483202.0175233 * T - 0.0036539 * T * T) * D2R;
+  const moonCorr = 6.288774 * Math.sin(Mm) + 1.274027 * Math.sin(2*D - Mm) + 0.658314 * Math.sin(2*D)
+    + 0.213618 * Math.sin(2*Mm) - 0.185116 * Math.sin(Ms) - 0.114332 * Math.sin(2*F)
+    + 0.058793 * Math.sin(2*D - 2*Mm) + 0.057066 * Math.sin(2*D - Ms - Mm) + 0.053322 * Math.sin(2*D + Mm)
+    + 0.045758 * Math.sin(2*D - Ms) - 0.040923 * Math.sin(Ms - Mm) - 0.034720 * Math.sin(D)
+    - 0.030383 * Math.sin(Ms + Mm) + 0.015327 * Math.sin(2*D - 2*F);
+  const moonLon = norm360(Lp + moonCorr);
+
+  const elem = {
+    Mercury: [0.38709893, 0.20563069 + 0.00002527*T, 7.00487 - 0.005947*T, 48.33167 - 0.12534*T, 77.45645 + 0.16047*T, 252.25084 + 149472.67411*T],
+    Venus:   [0.72333199, 0.00677323 - 0.00004938*T, 3.39471 - 0.000788*T, 76.68069 - 0.27769*T, 131.53298 + 0.00283*T, 181.97973 + 58517.81539*T],
+    Mars:    [1.52366231, 0.09341233 + 0.00011902*T, 1.85061 - 0.002547*T, 49.57854 - 0.29257*T, 336.04084 + 0.44441*T, 355.45332 + 19140.30268*T],
+    Jupiter: [5.20336301, 0.04839266 - 0.00012880*T, 1.30530 - 0.001987*T, 100.55615 + 0.20469*T, 14.75385 + 0.21252*T, 34.40438 + 3034.74612*T],
+    Saturn:  [9.53707032, 0.05415060 - 0.00036762*T, 2.48446 + 0.001936*T, 113.71504 - 0.25098*T, 92.43194 - 0.41897*T, 49.94432 + 1222.11384*T]
+  };
+
+  const res = { Sun: sunLon, Moon: moonLon };
+  const Lj = elem.Jupiter[5], Ls = elem.Saturn[5];
+  const greatIneq = Math.sin((2 * Lj - 5 * Ls + 67.6) * D2R);
+
+  for (const [name, [a, e, inc, O, w, L]] of Object.entries(elem)) {
+    const M = norm360(L - w) * D2R;
+    let E = M;
+    for (let k = 0; k < 10; k++) E = M + e * Math.sin(E);
+    const v = 2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E / 2), Math.sqrt(1 - e) * Math.cos(E / 2));
+    const r = a * (1 - e * Math.cos(E));
+    const u = v + (w - O) * D2R;
+    const Or = O * D2R, ir = inc * D2R;
+    const xh = r * (Math.cos(Or) * Math.cos(u) - Math.sin(Or) * Math.sin(u) * Math.cos(ir));
+    const yh = r * (Math.sin(Or) * Math.cos(u) + Math.cos(Or) * Math.sin(u) * Math.cos(ir));
+    let lon = norm360(Math.atan2(yh - yE, xh - xE) * R2D);
+    if (name === "Jupiter") lon = norm360(lon + 0.33 * greatIneq);
+    if (name === "Saturn") lon = norm360(lon - 0.81 * greatIneq);
+    res[name] = lon;
+  }
+
+  const rahu = norm360(125.04452 - 1934.136261 * T + 0.0020708 * T * T);
+  res.Rahu = rahu;
+  res.Ketu = norm360(rahu + 180);
+  return res;
+}
+
+function getPlacidusCusps(jd, latDeg, lonDeg, ayanamsa) {
+  const T = (jd - 2451545.0) / 36525.0;
+  const gmst = norm360(280.46061837 + 360.98564736629 * (jd - 2451545.0) + 0.000387933 * T * T);
+  const ramc = norm2Pi((gmst + lonDeg) * D2R);
+  const eps = (23.4392911 - 0.0130042 * T) * D2R;
+  const lat = latDeg * D2R;
+
+  const mc = norm2Pi(Math.atan2(Math.sin(ramc), Math.cos(ramc) * Math.cos(eps)));
+  const asc = norm2Pi(Math.atan2(Math.cos(ramc), -(Math.sin(ramc) * Math.cos(eps) + Math.tan(lat) * Math.sin(eps))));
+
+  function solveDiurnal(f) {
+    let ra = ramc + f * (Math.PI / 2);
+    for (let i = 0; i < 15; i++) {
+      const lam = Math.atan2(Math.sin(ra), Math.cos(ra) * Math.cos(eps));
+      const dec = Math.asin(Math.max(-0.9999, Math.min(0.9999, Math.sin(eps) * Math.sin(lam))));
+      const ad = Math.asin(Math.max(-0.9999, Math.min(0.9999, Math.tan(lat) * Math.tan(dec))));
+      ra = ramc + f * (Math.PI / 2 + ad);
+    }
+    return norm2Pi(Math.atan2(Math.sin(ra), Math.cos(ra) * Math.cos(eps)));
+  }
+
+  function solveNocturnal(f) {
+    let ra = ramc + Math.PI / 2 + f * (Math.PI / 2);
+    for (let i = 0; i < 15; i++) {
+      const lam = Math.atan2(Math.sin(ra), Math.cos(ra) * Math.cos(eps));
+      const dec = Math.asin(Math.max(-0.9999, Math.min(0.9999, Math.sin(eps) * Math.sin(lam))));
+      const ad = Math.asin(Math.max(-0.9999, Math.min(0.9999, Math.tan(lat) * Math.tan(dec))));
+      ra = (ramc + Math.PI / 2 + ad) + f * (Math.PI / 2 - ad);
+    }
+    return norm2Pi(Math.atan2(Math.sin(ra), Math.cos(ra) * Math.cos(eps)));
+  }
+
+  const c10 = norm360(mc * R2D - ayanamsa);
+  const c11 = norm360(solveDiurnal(1/3) * R2D - ayanamsa);
+  const c12 = norm360(solveDiurnal(2/3) * R2D - ayanamsa);
+  const c1  = norm360(asc * R2D - ayanamsa);
+  const c2  = norm360(solveNocturnal(1/3) * R2D - ayanamsa);
+  const c3  = norm360(solveNocturnal(2/3) * R2D - ayanamsa);
+
+  return [
+    c1, c2, c3, norm360(c10 + 180), norm360(c11 + 180), norm360(c12 + 180),
+    norm360(c1 + 180), norm360(c2 + 180), norm360(c3 + 180), c10, c11, c12
+  ];
+}
+
+function build249Table() {
+  const table = [];
+  const nakSpan = 360 / 27;
+  for (let n = 0; n < 27; n++) {
+    let cur = n * nakSpan;
+    const startLord = n % 9;
+    for (let s = 0; s < 9; s++) {
+      const idx = (startLord + s) % 9;
+      const span = (DASHA_YEARS[idx] / 120) * nakSpan;
+      const end = cur + span;
+      const sSign = Math.floor(cur / 30);
+      const eSign = Math.floor((end - 1e-9) / 30);
+      if (sSign !== eSign) {
+        const b = (sSign + 1) * 30;
+        table.push(cur); table.push(b);
+      } else {
+        table.push(cur);
+      }
+      cur = end;
+    }
+  }
+  return table;
+}
+
+function getHoraryCusps(jdBase, lat, lon, ayanamsa, targetAsc) {
+  const sidDay = 0.9972695663;
+  const step = sidDay / 36;
+  let t1 = jdBase;
+  const diff = (t) => (((getPlacidusCusps(t, lat, lon, ayanamsa)[0] - targetAsc + 180) % 360 + 360) % 360) - 180;
+  let d1 = diff(t1);
+  for (let i = 0; i < 40; i++) {
+    const t2 = t1 + step;
+    const d2 = diff(t2);
+    if (d1 <= 0 && d2 >= 0) {
+      let lo = t1, hi = t2;
+      for (let j = 0; j < 40; j++) {
+        const mid = (lo + hi) / 2;
+        if (diff(mid) < 0) lo = mid; else hi = mid;
+      }
+      return getPlacidusCusps((lo + hi) / 2, lat, lon, ayanamsa);
+    }
+    t1 = t2; d1 = d2;
+  }
+  return getPlacidusCusps(jdBase, lat, lon, ayanamsa);
+}
+
+function findHouse(deg, cusps) {
+  deg = norm360(deg);
+  for (let h = 0; h < 12; h++) {
+    const s = cusps[h], e = cusps[(h + 1) % 12];
+    if (s < e) { if (deg >= s && deg < e) return h + 1; }
+    else { if (deg >= s || deg < e) return h + 1; }
+  }
+  return 1;
+}
+
+/* --- NORTH INDIAN KUNDALI SVG RENDERER --- */
+function renderNorthIndianChart(cuspsData, planetsData) {
+  const svg = document.getElementById("kundaliSvg");
+  const housePlanets = {};
+  for (let h = 1; h <= 12; h++) housePlanets[h] = [];
+  for (const p of DASHA_LORDS) {
+    const info = planetsData[p];
+    housePlanets[info.house].push(SHORT_PLANET[p] + (info.isRetro ? "(R)" : ""));
+  }
+
+  // Exact coordinates for Rashi number & Planet text in all 12 houses
+  const layout = {
+    1:  { sx: 210, sy: 192, px: 210, py: 105 },
+    2:  { sx: 110, sy: 94,  px: 110, py: 48  },
+    3:  { sx: 92,  sy: 114, px: 48,  py: 110 },
+    4:  { sx: 190, sy: 214, px: 105, py: 210 },
+    5:  { sx: 92,  sy: 314, px: 48,  py: 310 },
+    6:  { sx: 110, sy: 332, px: 110, py: 372 },
+    7:  { sx: 210, sy: 236, px: 210, py: 315 },
+    8:  { sx: 310, sy: 332, px: 310, py: 372 },
+    9:  { sx: 328, sy: 314, px: 372, py: 310 },
+    10: { sx: 230, sy: 214, px: 315, py: 210 },
+    11: { sx: 328, sy: 114, px: 372, py: 110 },
+    12: { sx: 310, sy: 94,  px: 310, py: 48  }
+  };
+
+  let html = `
+    <rect x="10" y="10" width="400" height="400" fill="#0f172a" stroke="#f59e0b" stroke-width="2"/>
+    <line x1="10" y1="10" x2="410" y2="410" stroke="#475569" stroke-width="1.5"/>
+    <line x1="410" y1="10" x2="10" 
